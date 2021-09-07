@@ -25,6 +25,10 @@ let package = Package(
             name: "DeploymentTargetIoTRuntime",
             targets: ["DeploymentTargetIoTRuntime"]
         ),
+        .library(
+            name: "LifxIoTDeploymentOption",
+            targets: ["LifxIoTDeploymentOption"]
+        ),
         .executable(
             name: "LifxIoTDeploymentTarget",
             targets: ["LifxIoTDeploymentTarget"]
