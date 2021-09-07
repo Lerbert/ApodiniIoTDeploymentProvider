@@ -86,3 +86,16 @@ private extension Array where Element: Hashable {
         Set(self)
     }
 }
+
+private extension Array where Element == CollectedEndpointInfo {
+    func convert() -> Set<ExportedEndpoint> {
+        Set(
+            map {
+                ExportedEndpoint(
+                    handlerType: $0.handlerType,
+                    handlerId: $0.endpoint[AnyHandlerIdentifier.self]
+                )
+            }
+        )
+    }
+}
