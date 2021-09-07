@@ -20,6 +20,14 @@ let package = Package(
         .library(
             name: "DeploymentTargetIoT",
             targets: ["DeploymentTargetIoT"]
+        ),
+        .library(
+            name: "DeploymentTargetIoTRuntime",
+            targets: ["DeploymentTargetIoTRuntime"]
+        ),
+        .executable(
+            name: "LifxIoTDeploymentTarget",
+            targets: ["LifxIoTDeploymentTarget"]
         )
     ],
     dependencies: [
@@ -37,7 +45,6 @@ let package = Package(
                 .target(name: "DeploymentTargetIoTCommon"),
                 .product(name: "ApodiniDeployBuildSupport", package: "Apodini"),
                 .product(name: "ApodiniUtils", package: "Apodini")
-                //                .product(name: "Apodini")
             ]
         ),
         .target(
