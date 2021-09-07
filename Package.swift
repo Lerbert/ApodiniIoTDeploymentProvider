@@ -12,32 +12,69 @@ import PackageDescription
 
 
 let package = Package(
-    name: "ApodiniTemplate",
+    name: "ApodiniIoTDeploymentProvider",
     platforms: [
         .macOS(.v12)
     ],
     products: [
-        .executable(
-            name: "WebService",
-            targets: ["WebService"]
+        .library(
+            name: "DeploymentTargetIoT",
+            targets: ["DeploymentTargetIoT"]
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/Apodini/Apodini.git", .upToNextMinor(from: "0.5.0"))
+        .package(url: "https://github.com/Apodini/Apodini.git", .upToNextMinor(from: "0.5.0")),
+        .package(name: "swift-device-discovery", url: "https://github.com/Apodini/SwiftDeviceDiscovery.git", .branch("master")),
+        .package(name: "swift-nio-lifx-impl", url: "https://github.com/Apodini/Swift-NIO-LIFX-Impl", .branch("develop")),
+        .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.4.0"))
     ],
     targets: [
-        .executableTarget(
-            name: "WebService",
+        .target(
+            name: "DeploymentTargetIoT",
             dependencies: [
-                .product(name: "Apodini", package: "Apodini"),
-                .product(name: "ApodiniREST", package: "Apodini"),
-                .product(name: "ApodiniOpenAPI", package: "Apodini")
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "SwiftDeviceDiscovery", package: "swift-device-discovery"),
+                .target(name: "DeploymentTargetIoTCommon"),
+                .product(name: "ApodiniDeployBuildSupport", package: "Apodini"),
+                .product(name: "ApodiniUtils", package: "Apodini"),
+//                .product(name: "Apodini")
             ]
         ),
-        .testTarget(
-            name: "WebServiceTests",
+        .target(
+            name: "DeploymentTargetIoTRuntime",
             dependencies: [
-                .target(name: "WebService")
+                .product(name: "ApodiniDeployRuntimeSupport", package: "Apodini"),
+                .target(name: "DeploymentTargetIoTCommon")
+            ]
+        ),
+        .target(
+            name: "DeploymentTargetIoTCommon",
+            dependencies: [
+                .product(name: "ApodiniDeployBuildSupport", package: "Apodini")
+            ]
+        ),
+        .executableTarget(
+            name: "LifxIoTDeploymentTarget",
+            dependencies: [
+                .target(name: "DeploymentTargetIoT"),
+                .target(name: "LifxIoTDeploymentOption"),
+                .target(name: "DeploymentTargetIoTCommon"),
+                .product(name: "LifxDiscoveryActions", package: "swift-nio-lifx-impl")
+            ]
+        ),
+        .target(
+            name: "LifxIoTDeploymentOption",
+            dependencies: [
+                .product(name: "ApodiniDeployBuildSupport", package: "Apodini"),
+                .target(name: "DeploymentTargetIoTCommon")
+            ]
+        ),
+        
+        
+        .testTarget(
+            name: "IoTDeploymentTests",
+            dependencies: [
+                .target(name: "DeploymentTargetIoT")
             ]
         )
     ]

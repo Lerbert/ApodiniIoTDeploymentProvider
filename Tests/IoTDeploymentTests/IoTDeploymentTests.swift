@@ -9,7 +9,7 @@
 import XCTest
 
 
-final class ApodiniTemplateTests: XCTestCase {
+final class IoTDeploymentTests: XCTestCase {
     func testExample() {
         XCTAssertTrue(true)
     }
