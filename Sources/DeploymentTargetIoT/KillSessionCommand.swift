@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //       
 
-import Foundation
 import ArgumentParser
 import DeviceDiscovery
+import Foundation
 
 /// A Command that kills running tmux session on the given devices.
 /// This can be used to stop instances of a deployed web services without having to manually ssh into each deployment target.
@@ -30,6 +30,8 @@ public struct KillSessionCommand: ParsableCommand {
     
     @Flag(help: "If set, looks for the corresponding docker instance instead")
     var docker = false
+    
+    public init() {}
 
     public func run() throws {
         for id in types.split(separator: ",").map(String.init) {
@@ -52,6 +54,4 @@ public struct KillSessionCommand: ParsableCommand {
             IoTContext.logger.info("Finished.")
         }
     }
-    
-    public init() {}
 }

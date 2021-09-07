@@ -6,12 +6,12 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import ApodiniDeployRuntimeSupport
-import DeploymentTargetIoTCommon
 import Apodini
+import ApodiniDeployRuntimeSupport
 import ApodiniUtils
 import ArgumentParser
+import DeploymentTargetIoTCommon
+import Foundation
 
 public struct IoTStructureExporterCommand<Service: WebService>: StructureExporter {
     public static var configuration: CommandConfiguration {
@@ -27,7 +27,7 @@ public struct IoTStructureExporterCommand<Service: WebService>: StructureExporte
     public var ipAddress: String
     
     @Option
-    public var port: Int = 8080
+    public var port: Int
     
     @Option
     public var actionKeys: String
@@ -72,6 +72,7 @@ public struct IoTStructureExporterCommand<Service: WebService>: StructureExporte
         let node = try DeployedSystemNode(
             id: ipAddress,
             exportedEndpoints: suitableEndpoints.convert(),
+            // swiftlint:disable:next force_unwrapping
             userInfo: IoTLaunchInfo(host: URL(string: docker ? remoteLocalhost : ipAddress)!, port: port)
         )
         return try DeployedSystem(

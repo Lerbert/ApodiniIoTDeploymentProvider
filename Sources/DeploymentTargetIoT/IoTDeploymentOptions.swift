@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //       
 
-import Foundation
 import ArgumentParser
+import Foundation
 
 /// Contains all options that are required by the `IotDeploymentProvider`.
 public struct IoTDeploymentOptions: ParsableArguments {
@@ -27,7 +27,8 @@ public struct IoTDeploymentOptions: ParsableArguments {
     )
     public var automaticRedeployment = false
     
+    @Option(help: "The port the web service will listen on")
+    public var port: Int = 8080
+    
     public init() {}
 }
-
-//static let DefaultOptions = IoTDeploymentOptions(

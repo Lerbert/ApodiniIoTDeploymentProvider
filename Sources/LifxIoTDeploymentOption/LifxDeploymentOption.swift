@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //  
 
-import Foundation
-import ApodiniDeployBuildSupport
 import Apodini
+import ApodiniDeployBuildSupport
 import DeploymentTargetIoTCommon
+import Foundation
 
 extension DeploymentDevice {
     /// The custom `DeploymentDevice` option for the `DeploymentDeviceMetadata`. This can be used to annotate handlers.

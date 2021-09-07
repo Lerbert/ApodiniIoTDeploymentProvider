@@ -6,25 +6,25 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import ApodiniDeployRuntimeSupport
-import DeploymentTargetIoTCommon
 import Apodini
+import ApodiniDeployRuntimeSupport
 import ApodiniUtils
 import ArgumentParser
+import DeploymentTargetIoTCommon
+import Foundation
 
 public struct IoTStartupCommand<Service: WebService>: DeploymentStartupCommand {
-    public var deployedSystemType: AnyDeployedSystem.Type {
-        DeployedSystem.self
+    public static var configuration: CommandConfiguration {
+        CommandConfiguration(
+            commandName: "iot",
+            abstract: "Start a web service - IoT",
+            discussion: "Starts up an Apodini web service for the iot deployment",
+            version: "0.0.1"
+        )
     }
     
-    public static var configuration: CommandConfiguration {
-        CommandConfiguration(commandName: "iot",
-                             abstract: "Start a web service - IoT",
-                             discussion: """
-                                    Starts up an Apodini web service for the iot deployment
-                                  """,
-                             version: "0.0.1")
+    public var deployedSystemType: AnyDeployedSystem.Type {
+        DeployedSystem.self
     }
     
     @Argument(help: "The location of the json containing the system structure")
@@ -36,6 +36,8 @@ public struct IoTStartupCommand<Service: WebService>: DeploymentStartupCommand {
     @Option(help: "All the handler ids that should be activated")
     public var endpointIds: String
     
+    public init() {}
+    
     public func run() throws {
         let app = Application()
         let endpointIds = endpointIds.split(separator: ",").map { String($0) }
@@ -46,8 +48,6 @@ public struct IoTStartupCommand<Service: WebService>: DeploymentStartupCommand {
         app.storage.set(DeploymentStartUpStorageKey.self, to: self)
         try Service.start(mode: .run, app: app, webService: Service())
     }
-    
-    public init() {}
 }
 
 struct IoTLifeCycleHandler: LifecycleHandler {

@@ -18,26 +18,29 @@ enum IoTContext {
     static let defaultPassword = "test1234"
     
     static let logger = Logger(label: "de.apodini.IoTDeployment")
-
+    
     static let dockerVolumeTmpDir = URL(fileURLWithPath: "/app/tmp")
-
+    
     private static var startDate = Date()
-
+    
     static func copyResources(_ device: Device, origin: String, destination: String) throws {
-        let task = Task(executableUrl: Self._findExecutable("rsync"),
-                        arguments: [
-                            "-avz",
-                            "-e",
-                            "'ssh'",
-                            origin,
-                            destination
-                        ],
-                        workingDirectory: nil,
-                        launchInCurrentProcessGroup: true)
+        let task = Task(
+            executableUrl: Self._findExecutable("rsync"),
+            arguments: [
+                "-avz",
+                "-e",
+                "'ssh'",
+                origin,
+                destination
+            ],
+            workingDirectory: nil,
+            launchInCurrentProcessGroup: true
+        )
         try task.launchSyncAndAssertSuccess()
     }
-
+    
     static func rsyncHostname(_ device: Device, path: String) -> String {
+        // swiftlint:disable:next force_unwrapping
         "\(device.username)@\(device.ipv4Address!):\(path)"
     }
     
@@ -47,7 +50,7 @@ enum IoTContext {
         }
         return ipaddress
     }
-
+    
     private static func _findExecutable(_ name: String) -> URL {
         guard let url = Task.findExecutable(named: name) else {
             fatalError("Unable to find executable '\(name)'")
@@ -65,13 +68,13 @@ enum IoTContext {
     /// A wrapper function that navigates to the specified working directory and executes the command remotely
     static func runTaskOnRemote(
         _ command: String,
-        workingDir: String,
+        workingDir: String = "",
         device: Device,
         assertSuccess: Bool = true,
         responseHandler: ((String) -> Void)? = nil
     ) throws {
         let client = try getSSHClient(for: device)
-        let cmd = "cd \(workingDir) && \(command)"
+        let cmd = workingDir.isEmpty ? command : "cd \(workingDir) && \(command)"
         if assertSuccess {
             client.executeWithAssertion(cmd: cmd, responseHandler: responseHandler)
         } else {
@@ -85,12 +88,13 @@ enum IoTContext {
     
     static func endTimer() {
         let components = Calendar.current.dateComponents([.hour, .minute, .second], from: startDate, to: Date())
-        guard let hours = components.hour,
-              let minutes = components.minute,
-              let seconds = components.second else {
-                  Self.logger.error("Unable to read timer")
-                  return
-              }
+        guard
+            let hours = components.hour,
+            let minutes = components.minute,
+            let seconds = components.second else {
+                Self.logger.error("Unable to read timer")
+                return
+            }
         let hourString = hours < 10 ? "0\(hours)" : "\(hours)"
         let minuteString = minutes < 10 ? "0\(minutes)" : "\(minutes)"
         let secondsString = seconds < 10 ? "0\(seconds)" : "\(seconds)"
@@ -105,9 +109,10 @@ enum IoTContext {
         }
         Self.logger.info("The password for \(reason) :")
         let passw = getpass("")
+        // swiftlint:disable:next force_unwrapping
         return (username!, String(cString: passw!))
     }
-
+    
     static func runInDocker(
         imageName: String,
         command: String,
@@ -117,7 +122,8 @@ enum IoTContext {
         detached: Bool = false,
         privileged: Bool = false,
         volumeDir: URL = dockerVolumeTmpDir,
-        port: Int = -1) throws {
+        port: Int = -1
+    ) throws {
         var arguments: String {
             var args = [
                 "sudo",

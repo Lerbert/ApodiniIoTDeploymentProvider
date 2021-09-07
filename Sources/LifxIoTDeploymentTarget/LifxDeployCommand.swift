@@ -8,12 +8,12 @@
 // SPDX-License-Identifier: MIT
 //  
 
-import Foundation
-import DeploymentTargetIoT
 import ArgumentParser
+import DeploymentTargetIoTCommon
+import DeploymentTargetIoT
 import LifxDiscoveryActions
 import LifxIoTDeploymentOption
-import DeploymentTargetIoTCommon
+import Foundation
 
 struct LifxDeployCommand: ParsableCommand {
     static var configuration: CommandConfiguration {

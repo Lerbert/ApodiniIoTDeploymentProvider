@@ -6,21 +6,29 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import ApodiniDeployRuntimeSupport
-import DeploymentTargetIoTCommon
 import Apodini
+import ApodiniDeployRuntimeSupport
 import ApodiniUtils
 import ArgumentParser
-
+import DeploymentTargetIoTCommon
+import Foundation
 
 public class IoTRuntime<Service: WebService>: DeploymentProviderRuntime {
     public static var identifier: DeploymentProviderID {
         iotDeploymentProviderId
     }
     
+    public static var exportCommand: StructureExporter.Type {
+        IoTStructureExporterCommand<Service>.self
+    }
+    
+    public static var startupCommand: DeploymentStartupCommand.Type {
+        IoTStartupCommand<Service>.self
+    }
+    
     public var deployedSystem: AnyDeployedSystem
     public var currentNodeId: DeployedSystemNode.ID
+    
     private let currentNodeCustomLaunchInfo: IoTLaunchInfo
     
     public required init(deployedSystem: AnyDeployedSystem, currentNodeId: DeployedSystemNode.ID) throws {
@@ -36,14 +44,6 @@ public class IoTRuntime<Service: WebService>: DeploymentProviderRuntime {
             )
         }
         self.currentNodeCustomLaunchInfo = launchInfo
-    }
-    
-    public static var exportCommand: StructureExporter.Type {
-        IoTStructureExporterCommand<Service>.self
-    }
-    
-    public static var startupCommand: DeploymentStartupCommand.Type {
-        IoTStartupCommand<Service>.self
     }
     
     public func configure(_ app: Application) throws {

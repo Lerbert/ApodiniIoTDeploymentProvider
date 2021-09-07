@@ -36,8 +36,8 @@ let package = Package(
                 .product(name: "SwiftDeviceDiscovery", package: "swift-device-discovery"),
                 .target(name: "DeploymentTargetIoTCommon"),
                 .product(name: "ApodiniDeployBuildSupport", package: "Apodini"),
-                .product(name: "ApodiniUtils", package: "Apodini"),
-//                .product(name: "Apodini")
+                .product(name: "ApodiniUtils", package: "Apodini")
+                //                .product(name: "Apodini")
             ]
         ),
         .target(
@@ -69,8 +69,6 @@ let package = Package(
                 .target(name: "DeploymentTargetIoTCommon")
             ]
         ),
-        
-        
         .testTarget(
             name: "IoTDeploymentTests",
             dependencies: [

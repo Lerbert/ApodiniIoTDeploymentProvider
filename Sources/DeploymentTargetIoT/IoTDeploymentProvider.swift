@@ -108,6 +108,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
         self.searchableTypes = searchableTypes
         self.productName = productName
         self.packageRootDir = URL(fileURLWithPath: packageRootDir)
+        // swiftlint:disable:next force_unwrapping
         self.deploymentDir = URL(string: deploymentDir)!
         self.automaticRedeployment = automaticRedeployment
         self.additionalConfiguration = additionalConfiguration
@@ -118,24 +119,24 @@ public class IoTDeploymentProvider: DeploymentProvider {
     
     /// Runs the deployment
     public func run() throws {
-            IoTContext.logger.notice("Starting deployment of \(productName)..")
-            isRunning = true
-
-            IoTContext.logger.info("Searching for devices in the network")
-            for type in searchableTypes {
-                let discovery = setup(for: type)
-
-                results = try discovery.run(2).wait()
-                IoTContext.logger.info("Found: \(results)")
-                
-                try results.forEach {
-                    try deploy($0, discovery: discovery)
-                }
-                IoTContext.logger.notice("Completed deployment for all devices of type \(type)")
-                discovery.stop()
+        IoTContext.logger.notice("Starting deployment of \(productName)..")
+        isRunning = true
+        
+        IoTContext.logger.info("Searching for devices in the network")
+        for type in searchableTypes {
+            let discovery = setup(for: type)
+            
+            results = try discovery.run(2).wait()
+            IoTContext.logger.info("Found: \(results)")
+            
+            try results.forEach {
+                try deploy($0, discovery: discovery)
             }
-
-            isRunning = false
+            IoTContext.logger.notice("Completed deployment for all devices of type \(type)")
+            discovery.stop()
+        }
+        try listenForChanges()
+        isRunning = false
     }
     
     /// Register a `PostDiscoveryAction` with a `DeploymentDeviceMetadata` to the deployment provider.
@@ -160,7 +161,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
     internal func deploy(_ result: DiscoveryResult, discovery: DeviceDiscovery) throws {
         IoTContext.logger.debug("Cleaning up any leftover actions data in deployment directory")
         try cleanup(on: result.device)
-
+        
         guard
             // do nothing if there were no post actions
             !result.foundEndDevices.isEmpty,
@@ -168,31 +169,31 @@ public class IoTDeploymentProvider: DeploymentProvider {
             result.foundEndDevices.values.contains(where: { $0 != 0 })
         else {
             IoTContext.logger.warning("No end devices were found for device \(String(describing: result.device.hostname))")
-                return
-            }
-
+            return
+        }
+        
         IoTContext.logger.info("Starting deployment to device \(String(describing: result.device.hostname))")
-
+        
         let device = result.device
-
+        
         try performInputRelatedActions(result)
-
+        
         IoTContext.logger.info("Retrieving the system structure")
         let (modelFileUrl, deployedSystem) = try retrieveDeployedSystem(result: result)
         IoTContext.logger.notice("System structure written to '\(modelFileUrl)'")
-
+        
         // Check if we have a suitable deployment node.
         // If theres none for this device, there's no point to continue
         guard let deploymentNode = try self.deploymentNode(for: result, deployedSystem: deployedSystem)
-            else {
-                IoTContext.logger.warning("Couldn't find a deployment node for \(String(describing: result.device.hostname))")
-                return
-            }
-
+        else {
+            IoTContext.logger.warning("Couldn't find a deployment node for \(String(describing: result.device.hostname))")
+            return
+        }
+        
         // Run web service on deployed node
         IoTContext.logger.info("Starting web service on remote node!")
         try run(on: deploymentNode, device: device, modelFileUrl: modelFileUrl)
-
+        
         IoTContext.logger.notice("Finished deployment for \(String(describing: result.device.hostname)) containing \(deploymentNode.id)")
     }
     
@@ -212,7 +213,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
             
             IoTContext.logger.info("Fetching the newest dependencies")
             try fetchDependencies(on: result.device)
-
+            
             IoTContext.logger.info("Building package on remote")
             try buildPackage(on: result.device)
         } else {
@@ -246,7 +247,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
         return discovery
     }
     
-    private func run(on node: DeployedSystemNode, device: Device, modelFileUrl: URL) throws {
+    internal func run(on node: DeployedSystemNode, device: Device, modelFileUrl: URL) throws {
         let handlerIds: String = node.exportedEndpoints.compactMap { $0.handlerId.rawValue }.joined(separator: ",")
         let buildUrl = remotePackageRootDir
             .appendingPathComponent(".build")
@@ -284,7 +285,8 @@ public class IoTDeploymentProvider: DeploymentProvider {
         try IoTContext.copyResources(
             result.device,
             origin: packageRootDir.path,
-            destination: IoTContext.rsyncHostname(result.device, path: self.deploymentDir.path))
+            destination: IoTContext.rsyncHostname(result.device, path: self.deploymentDir.path)
+        )
     }
     
     private func fetchDependencies(on device: Device) throws {
@@ -312,7 +314,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
         )
     }
     
-    private func deploymentNode(for result: DiscoveryResult, deployedSystem: DeployedSystem) throws -> DeployedSystemNode? {
+    internal func deploymentNode(for result: DiscoveryResult, deployedSystem: DeployedSystem) throws -> DeployedSystemNode? {
         let ipAddress = try IoTContext.ipAddress(for: result.device)
         let nodes = deployedSystem.nodes.filter { $0.id == ipAddress }
         // Since the node's id is the ip address, there should only be one deploymentnode per device.
@@ -333,15 +335,15 @@ public class IoTDeploymentProvider: DeploymentProvider {
             .compactMap { $0.0.getOptionRawValue() }
             .joined(separator: "-")
         let ipAddress = try IoTContext.ipAddress(for: result.device)
-            
+        
         try IoTContext.runInDocker(
             imageName: imageName,
-            command: "\(flattenedWebServiceArguments) deploy export-ws-structure iot \(fileUrl.path) --ip-address \(ipAddress) --action-keys \(actionKeys) --docker",
+            command: "\(flattenedWebServiceArguments) deploy export-ws-structure iot \(fileUrl.path) --ip-address \(ipAddress) --action-keys \(actionKeys) --port \(port) --docker",
             device: result.device,
             workingDir: remotePackageRootDir
         )
         let hostFilePath = remotePackageRootDir.appendingPathComponent(filename)
-
+        
         var responseString = ""
         try IoTContext.runTaskOnRemote(
             "cat \(hostFilePath)",
@@ -351,7 +353,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
                 responseString = response
             }
         )
-        
+        // swiftlint:disable:next force_unwrapping
         let responseData = responseString.data(using: .utf8)!
         let deployedSystem = try JSONDecoder().decode(DeployedSystem.self, from: responseData)
         
@@ -391,7 +393,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
                 responseString = response
             }
         )
-        
+        // swiftlint:disable:next force_unwrapping
         let responseData = responseString.data(using: .utf8)!
         let deployedSystem = try JSONDecoder().decode(DeployedSystem.self, from: responseData)
         

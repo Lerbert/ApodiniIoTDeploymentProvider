@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+import Apodini
 import ApodiniDeployBuildSupport
 import ApodiniUtils
-import Apodini
+import Foundation
 
 /// Identifier of the iot deployment provider.
 public let iotDeploymentProviderId = DeploymentProviderID("de.desiderato.ApodiniDeploymentProvider.IoT")
@@ -34,10 +34,7 @@ public struct DeploymentDevice: PropertyOption, RawRepresentable {
     }
     
     public static func & (lhs: DeploymentDevice, rhs: DeploymentDevice) -> DeploymentDevice {
-        DeploymentDevice(rawValue: lhs.rawValue
-                            .appending(".")
-                            .appending(rhs.rawValue)
-        )
+        DeploymentDevice(rawValue: lhs.rawValue.appending(".").appending(rhs.rawValue))
     }
 }
 

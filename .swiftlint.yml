@@ -262,8 +262,6 @@ only_rules:
     # Test files should contain a single QuickSpec or XCTestCase class.
   - sorted_first_last
     # Prefer using `min()`` or `max()`` over `sorted().first` or `sorted().last`
-  - sorted_imports
-    # Imports should be sorted.
   - statement_position
     # Else and catch should be on the same line, one space after the previous declaration.
   - static_operator
