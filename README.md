@@ -10,6 +10,8 @@ SPDX-License-Identifier: MIT
 
 # IoT Deployment Provider
 
+[![Build and Test](https://github.com/Apodini/ApodiniIoTDeploymentProvider/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/Apodini/ApodiniIoTDeploymentProvider/actions/workflows/build-and-test.yml) [![REUSE Compliance Check](https://github.com/Apodini/ApodiniIoTDeploymentProvider/actions/workflows/reuseaction.yml/badge.svg)](https://github.com/Apodini/ApodiniIoTDeploymentProvider/actions/workflows/reuseaction.yml)
+
 This repository contains an deployment provider for [Apodini](https://github.com/Apodini/Apodini) web services to an IoT environment. It allows the easy and automatic deployment without the need to know what devices are currently in the network.  
 
 ## Note
