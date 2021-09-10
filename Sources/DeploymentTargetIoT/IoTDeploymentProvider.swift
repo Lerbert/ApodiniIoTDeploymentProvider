@@ -65,7 +65,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
         }
     }
     
-    private var postActionMapping: [DeviceIdentifier: (DeploymentDeviceMetadata, PostDiscoveryAction.Type)] = [:]
+    private var postActionMapping: [DeviceIdentifier: (DeploymentDeviceMetadata, DeviceDiscovery.PostActionType)] = [:]
     private let additionalConfiguration: [ConfigurationProperty: Any]
     
     internal let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
@@ -145,7 +145,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
     /// - Parameter option: The corresponding option that will be associated with the action
     public func registerAction(
         scope: RegistrationScope,
-        action: PostDiscoveryAction.Type,
+        action: DeviceDiscovery.PostActionType,
         option: DeploymentDeviceMetadata
     ) {
         switch scope {
@@ -234,7 +234,14 @@ public class IoTDeploymentProvider: DeploymentProvider {
         }
         
         let discovery = DeviceDiscovery(DeviceIdentifier(type), domain: .local)
-        discovery.actions = [CreateDeploymentDirectoryAction.self] + postActionMapping.filter { $0.key.rawValue == type }.compactMap { $1.1 }
+        var actions: [DeviceDiscovery.PostActionType] = [
+            .action(CreateDeploymentDirectoryAction.self)
+        ]
+        actions.append(contentsOf: postActionMapping.filter { $0.key.rawValue == type }.compactMap { $1.1 })
+        
+        discovery.registerActions(
+            actions
+        )
         
         let config: [ConfigurationProperty: Any] = [
             .username: username,
@@ -267,7 +274,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
                 imageName: imageName,
                 command: "\(flattenedWebServiceArguments) deploy startup iot \(volumeURL.path) --node-id \(node.id) --endpoint-ids \(handlerIds)",
                 device: device,
-                workingDir: remotePackageRootDir,
+                workingDir: deploymentDir,
                 containerName: productName,
                 detached: true,
                 privileged: true,
@@ -340,9 +347,9 @@ public class IoTDeploymentProvider: DeploymentProvider {
             imageName: imageName,
             command: "\(flattenedWebServiceArguments) deploy export-ws-structure iot \(fileUrl.path) --ip-address \(ipAddress) --action-keys \(actionKeys) --port \(port) --docker",
             device: result.device,
-            workingDir: remotePackageRootDir
+            workingDir: deploymentDir
         )
-        let hostFilePath = remotePackageRootDir.appendingPathComponent(filename)
+        let hostFilePath = deploymentDir.appendingPathComponent(filename)
         
         var responseString = ""
         try IoTContext.runTaskOnRemote(

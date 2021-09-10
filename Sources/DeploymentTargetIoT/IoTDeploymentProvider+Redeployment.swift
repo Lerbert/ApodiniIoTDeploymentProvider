@@ -11,8 +11,9 @@ import Apodini
 import DeviceDiscovery
 
 private enum EvaluationType {
-    case newDevice(DiscoveryResult)
-    case changedEndDevice(DiscoveryResult)
+    case newDevice
+    case changedEndDevices
+    case noEndDevices
     case noChange
 }
 
@@ -39,9 +40,9 @@ extension IoTDeploymentProvider {
                     switch evaluation {
                     case .newDevice:
                         try deploy(result, discovery: discovery)
-                    case .changedEndDevice:
+                    case .changedEndDevices:
                         try restartingWebService(on: result, discovery: discovery)
-                    case .noChange:
+                    case .noChange, .noEndDevices:
                         continue
                     }
                 }
@@ -58,7 +59,7 @@ extension IoTDeploymentProvider {
         if isNewDevice {
             // Trigger normal deployment
             IoTContext.logger.info("Detected change: New Device!")
-            return .newDevice(result)
+            return .newDevice
         }
 
         // It's not a new device, so there must be a counterpart in the existing results
@@ -81,7 +82,7 @@ extension IoTDeploymentProvider {
             IoTContext.logger.info("Removing deployment directory and stopping process")
             try killInstanceOnRemote(result.device)
 //            try IoTContext.runTaskOnRemote("sudo rm -rdf \(deploymentDir.path)", device: result.device)
-            return .changedEndDevice(result)
+            return .noEndDevices
         }
 
         // check if the amount of found devices was 0 before -> this would need to copy and build first.
@@ -89,10 +90,10 @@ extension IoTDeploymentProvider {
             result.foundEndDevices.contains(where: { $0.value > 0 }) {
             IoTContext.logger.info("Detected change: Updated end devices! First end device, previously none.")
             IoTContext.logger.info("Starting complete deployment process for device")
-            return .newDevice(result)
+            return .newDevice
         }
         IoTContext.logger.info("Detected change: Changed end devices!")
-        return .changedEndDevice(result)
+        return .changedEndDevices
     }
 
     private func restartingWebService(on result: DiscoveryResult, discovery: DeviceDiscovery) throws {
