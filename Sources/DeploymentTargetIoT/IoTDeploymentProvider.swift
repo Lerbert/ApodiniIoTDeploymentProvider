@@ -292,7 +292,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
     private func fetchDependencies(on device: Device) throws {
         try IoTContext.runTaskOnRemote(
             "swift package update",
-            workingDir: self.deploymentDir.appendingPathComponent(packageName).path,
+            workingDir: self.remotePackageRootDir.path,
             device: device
         )
     }
@@ -300,7 +300,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
     private func buildPackage(on device: Device) throws {
         try IoTContext.runTaskOnRemote(
             "swift build -c debug --product \(self.productName)",
-            workingDir: self.deploymentDir.appendingPathComponent(packageName).path,
+            workingDir: self.remotePackageRootDir.path,
             device: device
         )
     }
@@ -378,7 +378,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
             .joined(separator: "-")
         let ipAddress = try IoTContext.ipAddress(for: device)
         try IoTContext.runTaskOnRemote(
-            "./\(productName) \(flattenedWebServiceArguments) deploy export-ws-structure iot \(remoteFilePath) --ip-address \(ipAddress) --action-keys \(actionKeys)",
+            "./\(productName) \(flattenedWebServiceArguments) deploy export-ws-structure iot \(remoteFilePath) --ip-address \(ipAddress) --action-keys \(actionKeys) --port \(port)",
             workingDir: buildUrl.path,
             device: device
         )

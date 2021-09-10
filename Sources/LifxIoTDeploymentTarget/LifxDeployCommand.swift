@@ -37,11 +37,12 @@ struct LifxDeployCommand: ParsableCommand {
             productName: deploymentOptions.productName,
             packageRootDir: deploymentOptions.inputPackageDir,
             deploymentDir: deploymentOptions.deploymentDir,
-            automaticRedeployment: deploymentOptions.automaticRedeployment,
+            automaticRedeployment: deploymentOptions.automaticRedeploy,
             additionalConfiguration: [
                 .deploymentDirectory: deploymentOptions.deploymentDir
             ],
             webServiceArguments: webServiceArguments,
+//            input: .package
             input: .dockerImage("hendesi/master-thesis:latest-arm64")
         )
         provider.registerAction(scope: .all, action: LIFXDeviceDiscoveryAction.self, option: DeploymentDeviceMetadata(.lifx))

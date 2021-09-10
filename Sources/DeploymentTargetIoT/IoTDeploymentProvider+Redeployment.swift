@@ -19,10 +19,10 @@ private enum EvaluationType {
 extension IoTDeploymentProvider {
     func listenForChanges() throws {
         guard automaticRedeployment else {
-            IoTContext.logger.info("'automaticRedeployment' was set to false. Exiting.")
+            IoTContext.logger.notice("'automaticRedeploy' was set to false. Exiting.")
             return
         }
-        IoTContext.logger.info("'automaticRedeployment' was set to true. Scanning network for changes..")
+        IoTContext.logger.notice("'automaticRedeploy' was set to true. Scanning network for changes..")
 
         // Look for changes until stopped
         while true {
@@ -80,7 +80,8 @@ extension IoTDeploymentProvider {
             IoTContext.logger.info("Detected change: Updated end devices! No end device could be found anymore")
             IoTContext.logger.info("Removing deployment directory and stopping process")
             try killInstanceOnRemote(result.device)
-            try IoTContext.runTaskOnRemote("sudo rm -rdf \(deploymentDir.path)", device: result.device)
+//            try IoTContext.runTaskOnRemote("sudo rm -rdf \(deploymentDir.path)", device: result.device)
+            return .changedEndDevice(result)
         }
 
         // check if the amount of found devices was 0 before -> this would need to copy and build first.

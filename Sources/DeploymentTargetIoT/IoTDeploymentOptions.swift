@@ -25,7 +25,7 @@ public struct IoTDeploymentOptions: ParsableArguments {
 
     @Flag(help: "If set, the deployment provider listens for changes in the working directory and automatically redeploys them."
     )
-    public var automaticRedeployment = false
+    public var automaticRedeploy = false
     
     @Option(help: "The port the web service will listen on")
     public var port: Int = 8080

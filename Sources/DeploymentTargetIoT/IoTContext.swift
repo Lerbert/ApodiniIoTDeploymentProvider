@@ -78,7 +78,7 @@ enum IoTContext {
         if assertSuccess {
             client.executeWithAssertion(cmd: cmd, responseHandler: responseHandler)
         } else {
-            let _: Bool = try client.execute(cmd: cmd, responseHandler: nil)
+            let _: Bool = try client.execute(cmd: cmd, responseHandler: responseHandler)
         }
     }
     
