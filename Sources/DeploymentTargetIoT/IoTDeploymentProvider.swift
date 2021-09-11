@@ -68,6 +68,8 @@ public class IoTDeploymentProvider: DeploymentProvider {
     private var postActionMapping: [DeviceIdentifier: (DeploymentDeviceMetadata, DeviceDiscovery.PostActionType)] = [:]
     private let additionalConfiguration: [ConfigurationProperty: Any]
     
+    private var dockerCredentials: Credentials = .emptyCredentials
+    
     internal let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     
     internal var results: [DiscoveryResult] = []
@@ -121,6 +123,11 @@ public class IoTDeploymentProvider: DeploymentProvider {
     public func run() throws {
         IoTContext.logger.notice("Starting deployment of \(productName)..")
         isRunning = true
+        if case let .dockerImage(imageName) = inputType {
+            IoTContext.logger.notice("A docker image '\(imageName)' has been specified as input. Please enter the credentials to access the docker repo.")
+            let (username, password) = IoTContext.readUsernameAndPassword(for: "docker")
+            self.dockerCredentials = Credentials(username: username, password: password)
+        }
         
         IoTContext.logger.info("Searching for devices in the network")
         for type in searchableTypes {
@@ -218,9 +225,9 @@ public class IoTDeploymentProvider: DeploymentProvider {
             try buildPackage(on: result.device)
         } else {
             IoTContext.logger.info("A docker image was specified, so skipping copying, fetching and building..")
+            
             IoTContext.logger.info("Logging into docker")
-            let (username, password) = IoTContext.readUsernameAndPassword(for: "docker")
-            try IoTContext.runTaskOnRemote("sudo docker login -u \(username) -p \(password)", workingDir: self.remotePackageRootDir.path, device: result.device, assertSuccess: false)
+            try IoTContext.runTaskOnRemote("sudo docker login -u \(dockerCredentials.username) -p \(dockerCredentials.password)", workingDir: self.remotePackageRootDir.path, device: result.device, assertSuccess: false)
         }
     }
     

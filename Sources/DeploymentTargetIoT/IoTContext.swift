@@ -155,3 +155,10 @@ extension Dictionary {
         lhs.merging(rhs) { $1 }
     }
 }
+
+struct Credentials {
+    static let emptyCredentials = Credentials(username: "", password: "")
+    
+    let username: String
+    let password: String
+}

@@ -31,7 +31,7 @@ struct LifxDeployCommand: ParsableCommand {
     
     @OptionGroup
     var deploymentOptions: IoTDeploymentOptions
-
+    
     func run() throws {
         let provider = IoTDeploymentProvider(
             searchableTypes: deploymentOptions.types.split(separator: ",").map(String.init),
@@ -43,7 +43,7 @@ struct LifxDeployCommand: ParsableCommand {
                 .deploymentDirectory: deploymentOptions.deploymentDir
             ],
             webServiceArguments: webServiceArguments,
-//            input: .package
+            //            input: .package
             input: .dockerImage("hendesi/master-thesis:latest-arm64")
         )
         provider.registerAction(scope: .all, action: .action(LIFXDeviceDiscoveryAction.self), option: DeploymentDeviceMetadata(.lifx))
