@@ -28,7 +28,7 @@ extension IoTDeploymentProvider {
         let timer = Timer(fire: .now, interval: 30, repeats: true, block: { _ in
             do {
                 for type in self.searchableTypes {
-                    let discovery = self.setup(for: type)
+                    let discovery = try self.setup(for: type)
                     
                     // Run discovery with 30 seconds timeout
                     let results = try discovery.run(2).wait()
@@ -47,7 +47,6 @@ extension IoTDeploymentProvider {
                     }
                     self.results = results
                     discovery.stop()
-                    IoTContext.logger.info("Waiting for 30")
                 }
             } catch {
                 fatalError("An error occurred while performing the automatic redeployment: \(error)")

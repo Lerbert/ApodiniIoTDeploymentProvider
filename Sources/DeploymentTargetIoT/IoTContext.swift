@@ -13,9 +13,9 @@ import Logging
 
 enum IoTContext {
     static let deploymentDirectory = ConfigurationProperty("key_deployDir")
+
+    static let defaultCredentials = Credentials(username: "ubuntu", password: "test1234")
     
-    static let defaultUsername = "ubuntu"
-    static let defaultPassword = "test1234"
     
     static let logger = Logger(label: "de.apodini.IoTDeployment")
     
@@ -101,7 +101,7 @@ enum IoTContext {
         logger.notice("Complete deployment in \(hourString):\(minuteString):\(secondsString)")
     }
     
-    static func readUsernameAndPassword(for reason: String) -> (String, String) {
+    static func readUsernameAndPassword(for reason: String) -> Credentials {
         Self.logger.info("The username for \(reason) :")
         var username = readLine()
         while username.isEmpty {
@@ -110,7 +110,7 @@ enum IoTContext {
         Self.logger.info("The password for \(reason) :")
         let passw = getpass("")
         // swiftlint:disable:next force_unwrapping
-        return (username!, String(cString: passw!))
+        return Credentials(username: username!, password: String(cString: passw!))
     }
     
     static func runInDocker(

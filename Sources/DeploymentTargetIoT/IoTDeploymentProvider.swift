@@ -53,7 +53,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
     public let port: Int
     
     // Remove later
-    public let dryRun = true
+    public let dryRun = false
     
     public var target: DeploymentProviderTarget {
         .spmTarget(packageUrl: packageRootDir, targetName: productName)
@@ -69,6 +69,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
     private let additionalConfiguration: [ConfigurationProperty: Any]
     
     private var dockerCredentials: Credentials = .emptyCredentials
+    private var deviceCredentials: [String: Credentials] = [:]
     
     internal let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     
@@ -125,13 +126,16 @@ public class IoTDeploymentProvider: DeploymentProvider {
         isRunning = true
         if case let .dockerImage(imageName) = inputType {
             IoTContext.logger.notice("A docker image '\(imageName)' has been specified as input. Please enter the credentials to access the docker repo.")
-            let (username, password) = IoTContext.readUsernameAndPassword(for: "docker")
-            self.dockerCredentials = Credentials(username: username, password: password)
+            self.dockerCredentials = IoTContext.readUsernameAndPassword(for: "docker")
+        }
+        searchableTypes.forEach { type in
+            IoTContext.logger.notice("Please enter credentials for \(type)")
+            deviceCredentials[type] = dryRun ? IoTContext.defaultCredentials : IoTContext.readUsernameAndPassword(for: type)
         }
         
         IoTContext.logger.info("Searching for devices in the network")
         for type in searchableTypes {
-            let discovery = setup(for: type)
+            let discovery = try setup(for: type)
             
             results = try discovery.run(2).wait()
             IoTContext.logger.info("Found: \(results)")
@@ -231,15 +235,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
         }
     }
     
-    internal func setup(for type: String) -> DeviceDiscovery {
-        let (username, password): (String, String)
-        if dryRun {
-            username = IoTContext.defaultUsername
-            password = IoTContext.defaultPassword
-        } else {
-            (username, password) = IoTContext.readUsernameAndPassword(for: type)
-        }
-        
+    internal func setup(for type: String) throws -> DeviceDiscovery {
         let discovery = DeviceDiscovery(DeviceIdentifier(type), domain: .local)
         var actions: [DeviceDiscovery.PostActionType] = [
             .action(CreateDeploymentDirectoryAction.self)
@@ -249,10 +245,13 @@ public class IoTDeploymentProvider: DeploymentProvider {
         discovery.registerActions(
             actions
         )
+        guard let credentials = deviceCredentials[type] else {
+            throw IoTDeploymentError(description: "No credentials found for \(type)")
+        }
         
         let config: [ConfigurationProperty: Any] = [
-            .username: username,
-            .password: password,
+            .username: credentials.username,
+            .password: credentials.password,
             .runPostActions: true,
             IoTContext.deploymentDirectory: self.deploymentDir
         ] + additionalConfiguration

@@ -38,12 +38,12 @@ public struct KillSessionCommand: ParsableCommand {
             let discovery = DeviceDiscovery(DeviceIdentifier(id))
             discovery.configuration = [.runPostActions: false]
 
-            let (username, password) = IoTContext.readUsernameAndPassword(for: id)
+            let credentials = IoTContext.readUsernameAndPassword(for: id)
             let results = try discovery.run(2).wait()
 
             for result in results {
                 let ipAddress = try IoTContext.ipAddress(for: result.device)
-                let client = try SSHClient(username: username, password: password, ipAdress: ipAddress)
+                let client = try SSHClient(username: credentials.username, password: credentials.password, ipAdress: ipAddress)
                 IoTContext.logger.info("Trying to kill session on \(ipAddress)")
                 if docker {
                     try client.execute(cmd: "sudo docker kill \(productName)")
