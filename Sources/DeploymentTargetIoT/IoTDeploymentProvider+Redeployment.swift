@@ -25,7 +25,7 @@ extension IoTDeploymentProvider {
         }
         IoTContext.logger.notice("'automaticRedeploy' was set to true. Scanning network for changes..")
         
-        let timer = Timer(fire: .now, interval: 30, repeats: true, block: { _ in
+        let timer = Timer(fire: Date(), interval: 30, repeats: true, block: { _ in
             do {
                 for type in self.searchableTypes {
                     let discovery = try self.setup(for: type)
