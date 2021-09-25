@@ -24,7 +24,7 @@ let package = Package(
         .library(
             name: "DeploymentTargetIoTCommon",
             targets: ["DeploymentTargetIoTCommon"]
-        )
+        ),
         .library(
             name: "DeploymentTargetIoTRuntime",
             targets: ["DeploymentTargetIoTRuntime"]
