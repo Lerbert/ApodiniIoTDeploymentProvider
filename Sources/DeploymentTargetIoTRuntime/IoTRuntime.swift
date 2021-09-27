@@ -65,3 +65,11 @@ public class IoTRuntime<Service: WebService>: DeploymentProviderRuntime {
         return .invokeDefault(url: url)
     }
 }
+
+extension DeploymentDevice {
+    /// A default deployment device meta data option. This can be used for handlers that are not particular for one device,
+    /// but should be exported regardless of the found devices.
+    public static var `default`: Self {
+        DeploymentDevice(rawValue: "default")
+    }
+}
