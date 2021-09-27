@@ -43,10 +43,36 @@ struct LifxDeployCommand: ParsableCommand {
                 .deploymentDirectory: deploymentOptions.deploymentDir
             ],
             webServiceArguments: webServiceArguments,
-            //            input: .package
             input: .dockerImage("hendesi/master-thesis:latest-arm64")
+            //            input: .package(LIFXDeviceDiscoveryAction.self)
+            //            input: .dockerCompose(
+            //                fileURL: URL(fileURLWithPath: "/Users/felice/Documents/ApodiniDemoWebService/docker-compose.yml"),
+            //                serviceName: "apodini-test-web-service",
+            //                containerName: "test"
+            //            )
         )
         provider.registerAction(scope: .all, action: .action(LIFXDeviceDiscoveryAction.self), option: DeploymentDeviceMetadata(.lifx))
         try provider.run()
+        
+//        provider.registerAction(
+//            scope: .all,
+//            action:
+//                .docker(
+//                    DockerDiscoveryAction(
+//                        identifier: ActionIdentifier("docker_lifx"),
+//                        imageName: "hendesi/master-thesis:lifx-action",
+//                        fileUrl: URL(fileURLWithPath: deploymentOptions.deploymentDir)
+//                                .appendingPathComponent("lifx_devices"),
+//                        options: [
+//                            .privileged,
+//                            .volume(hostDir: deploymentOptions.deploymentDir, containerDir: "/app/tmp"),
+//                            .network("host"),
+//                            .command("/app/tmp --number-only"),
+//                            .credentials(username: "dummyUsername", password: "dummyPassword")
+//                        ]
+//                    )
+//                ),
+//            option: DeploymentDeviceMetadata(.lifx)
+//        )
     }
 }

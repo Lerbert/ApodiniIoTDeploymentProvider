@@ -17,7 +17,7 @@ import DeploymentTargetIoTCommon
 
 
 /// A deployment provider that handles the automatic deployment of a given web service to IoT devices in the network.
-public class IoTDeploymentProvider: DeploymentProvider {
+public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:this type_body_length
     /// Used to define the scope in which a `PostDiscoveryAction` is registered to the provider
     public enum RegistrationScope {
         /// The action is registered to all device types
@@ -34,6 +34,11 @@ public class IoTDeploymentProvider: DeploymentProvider {
         case dockerImage(String)
         /// Use the swift package for deployment
         case package
+        /// Use a docker compose file for deployment
+        /// - Parameter fileURL: The URL to the compose file
+        /// - Parameter serviceName: The name of the service as specified in the compose file
+        /// - Parameter containerName: The container name as specified in the compose file
+        case dockerCompose(fileURL: URL, serviceName: String, containerName: String)
     }
     
     /// The identifier of the deployment provider
@@ -63,6 +68,10 @@ public class IoTDeploymentProvider: DeploymentProvider {
         didSet {
             isRunning ? IoTContext.startTimer() : IoTContext.endTimer()
         }
+    }
+    
+    private var composeRemoteLocation: URL {
+        deploymentDir.appendingPathComponent("docker-compose.yml")
     }
     
     private var postActionMapping: [DeviceIdentifier: (DeploymentDeviceMetadata, DeviceDiscovery.PostActionType)] = [:]
@@ -212,8 +221,8 @@ public class IoTDeploymentProvider: DeploymentProvider {
         switch inputType {
         case .package:
             return try retrieveDeployedSystemUsingPackage(result: result)
-        case .dockerImage(let imageName):
-            return try retrieveDeployedSystemUsingDocker(imageName: imageName, result: result)
+        default:
+            return try retrieveDeployedSystemUsingDocker(type: inputType, result: result)
         }
     }
     
@@ -227,6 +236,13 @@ public class IoTDeploymentProvider: DeploymentProvider {
             
             IoTContext.logger.info("Building package on remote")
             try buildPackage(on: result.device)
+        } else if case .dockerCompose(fileURL: let fileUrl, serviceName: _, containerName: _) = inputType {
+            IoTContext.logger.info("Copying docker-compose to remote")
+            try IoTContext.copyResources(
+                result.device,
+                origin: fileUrl.path,
+                destination: IoTContext.rsyncHostname(result.device, path: self.deploymentDir.path)
+            )
         } else {
             IoTContext.logger.info("A docker image was specified, so skipping copying, fetching and building..")
             
@@ -286,6 +302,18 @@ public class IoTDeploymentProvider: DeploymentProvider {
                 privileged: true,
                 port: port
             )
+        case let .dockerCompose(_, serviceName, containerName):
+            let volumeURL = IoTContext.dockerVolumeTmpDir.appendingPathComponent("WebServiceStructure.json")
+            try IoTContext.runDockerCompose(
+                configFileURL: composeRemoteLocation,
+                serviceName: serviceName,
+                containerName: containerName,
+                cmd: "\(flattenedWebServiceArguments) deploy startup iot \(volumeURL.path) --node-id \(node.id) --endpoint-ids \(handlerIds)",
+                detached: true,
+                device: device,
+                workingDir: deploymentDir,
+                port: port
+            )
         }
     }
     
@@ -337,7 +365,7 @@ public class IoTDeploymentProvider: DeploymentProvider {
     }
     
     // MARK: - Retrieve Deployed System
-    private func retrieveDeployedSystemUsingDocker(imageName: String, result: DiscoveryResult) throws -> (URL, DeployedSystem) {
+    private func retrieveDeployedSystemUsingDocker(type: InputType, result: DiscoveryResult) throws -> (URL, DeployedSystem) {
         // ensure remote host dir is writable
         try IoTContext.runTaskOnRemote("sudo chmod 777 \(packageName)", workingDir: deploymentDir.path, device: result.device, assertSuccess: false)
         let filename = "WebServiceStructure.json"
@@ -346,15 +374,34 @@ public class IoTDeploymentProvider: DeploymentProvider {
             .filter { $0.key == result.device.identifier }
             .values
             .compactMap { $0.0.getOptionRawValue() }
-            .joined(separator: "-")
+            .joined(separator: ",")
+            .appending(",")
+            .appending("default")
         let ipAddress = try IoTContext.ipAddress(for: result.device)
         
-        try IoTContext.runInDocker(
-            imageName: imageName,
-            command: "\(flattenedWebServiceArguments) deploy export-ws-structure iot \(fileUrl.path) --ip-address \(ipAddress) --action-keys \(actionKeys) --port \(port) --docker",
-            device: result.device,
-            workingDir: deploymentDir
-        )
+        switch type {
+        case .dockerImage(let imageName):
+            try IoTContext.runInDocker(
+                imageName: imageName,
+                command: "\(flattenedWebServiceArguments) deploy export-ws-structure iot \(fileUrl.path) --ip-address \(ipAddress) --action-keys \(actionKeys) --port \(port) --docker",
+                device: result.device,
+                workingDir: deploymentDir
+            )
+        case let .dockerCompose(_, serviceName, containerName):
+            try IoTContext.runDockerCompose(
+                configFileURL: composeRemoteLocation,
+                serviceName: serviceName,
+                containerName: containerName,
+                cmd: "\(flattenedWebServiceArguments) deploy export-ws-structure iot \(fileUrl.path) --ip-address \(ipAddress) --action-keys \(actionKeys) --port \(port) --docker",
+                device: result.device,
+                workingDir: deploymentDir,
+                port: port
+            )
+        default:
+            // should not happen
+            break
+        }
+
         let hostFilePath = deploymentDir.appendingPathComponent(filename)
         
         var responseString = ""

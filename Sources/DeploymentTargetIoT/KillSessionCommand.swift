@@ -25,7 +25,7 @@ public struct KillSessionCommand: ParsableCommand {
     @Argument(help: "The type ids that should be searched for")
     var types: String
     
-    @Option(help: "Name of the deployed web service")
+    @Option(help: "SPM-Package/Docker-Image: Name of the deployed webservice. Docker Compose: The container name specified in the config file")
     var productName: String
     
     @Flag(help: "If set, looks for the corresponding docker instance instead")
