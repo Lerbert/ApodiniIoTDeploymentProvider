@@ -158,8 +158,7 @@ enum IoTContext {
     ) throws {
         var arguments: String {
             [
-                "docker",
-                "compose",
+                "docker-compose",
                 "-f",
                 configFileURL.path,
                 "run",
