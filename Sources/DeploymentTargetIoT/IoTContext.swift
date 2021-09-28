@@ -176,6 +176,14 @@ enum IoTContext {
         print(arguments)
         try runTaskOnRemote(arguments, device: device)
     }
+    
+    static func readConfigFile(_ configURL: URL?) throws -> [String: Credentials] {
+        guard let configURL = configURL else {
+            return [:]
+        }
+        let data = try Data(contentsOf: configURL)
+        return try JSONDecoder().decode([String: Credentials].self, from: data)
+    }
 }
 
 struct IoTDeploymentError: Swift.Error {
@@ -188,9 +196,14 @@ extension Dictionary {
     }
 }
 
-struct Credentials {
+struct Credentials: Codable {
     static let emptyCredentials = Credentials(username: "", password: "")
     
     let username: String
     let password: String
+}
+
+struct DeviceCredentials: Codable {
+    let hostname: String
+    let credentials: Credentials
 }

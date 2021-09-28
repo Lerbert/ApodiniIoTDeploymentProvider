@@ -53,6 +53,7 @@ public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:th
     public let packageRootDir: URL
     public let deploymentDir: URL
     public let webServiceArguments: [String]
+    public let configFile: URL?
     
     public let automaticRedeployment: Bool
     public let port: Int
@@ -74,7 +75,7 @@ public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:th
         deploymentDir.appendingPathComponent("docker-compose.yml")
     }
     
-    private var postActionMapping: [DeviceIdentifier: (DeploymentDeviceMetadata, DeviceDiscovery.PostActionType)] = [:]
+    private var postActionMapping: [DeviceIdentifier: [(DeploymentDeviceMetadata, DeviceDiscovery.PostActionType)]] = [:]
     private let additionalConfiguration: [ConfigurationProperty: Any]
     
     private var dockerCredentials: Credentials = .emptyCredentials
@@ -115,7 +116,8 @@ public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:th
         additionalConfiguration: [ConfigurationProperty: Any] = [:],
         webServiceArguments: [String] = [],
         input: InputType,
-        port: Int = 8080
+        port: Int = 8080,
+        configurationFile: URL? = nil
     ) {
         self.searchableTypes = searchableTypes
         self.productName = productName
@@ -127,6 +129,12 @@ public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:th
         self.webServiceArguments = webServiceArguments
         self.inputType = input
         self.port = port
+        self.configFile = configurationFile
+        
+        // initialize empty arrays
+        searchableTypes.forEach {
+            postActionMapping[DeviceIdentifier($0)] = []
+        }
     }
     
     /// Runs the deployment
@@ -137,6 +145,11 @@ public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:th
             IoTContext.logger.notice("A docker image '\(imageName)' has been specified as input. Please enter the credentials to access the docker repo.")
             self.dockerCredentials = IoTContext.readUsernameAndPassword(for: "docker")
         }
+        
+        if let configFile = configFile {
+            // todo
+        }
+        
         searchableTypes.forEach { type in
             IoTContext.logger.notice("Please enter credentials for \(type)")
             deviceCredentials[type] = dryRun ? IoTContext.defaultCredentials : IoTContext.readUsernameAndPassword(for: type)
@@ -170,11 +183,11 @@ public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:th
     ) {
         switch scope {
         case .all:
-            self.searchableTypes.forEach { postActionMapping[DeviceIdentifier($0)] = (option, action) }
+            self.searchableTypes.forEach { postActionMapping[DeviceIdentifier($0)]?.append((option, action)) }
         case .some(let array):
-            array.forEach { postActionMapping[DeviceIdentifier($0)] = (option, action) }
+            array.forEach { postActionMapping[DeviceIdentifier($0)]?.append((option, action)) }
         case .one(let type):
-            postActionMapping[DeviceIdentifier(type)] = (option, action)
+            postActionMapping[DeviceIdentifier(type)]?.append((option, action))
         }
     }
     
@@ -256,7 +269,10 @@ public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:th
         var actions: [DeviceDiscovery.PostActionType] = [
             .action(CreateDeploymentDirectoryAction.self)
         ]
-        actions.append(contentsOf: postActionMapping.filter { $0.key.rawValue == type }.compactMap { $1.1 })
+        
+        if let mapping = postActionMapping.first(where: { $0.key.rawValue == type }) {
+            actions.append(contentsOf: mapping.value.compactMap { $0.1 })
+        }
         
         discovery.registerActions(
             actions
@@ -370,9 +386,10 @@ public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:th
         try IoTContext.runTaskOnRemote("sudo chmod 777 \(packageName)", workingDir: deploymentDir.path, device: result.device, assertSuccess: false)
         let filename = "WebServiceStructure.json"
         let fileUrl = IoTContext.dockerVolumeTmpDir.appendingPathComponent(filename)
+
         let actionKeys = postActionMapping
-            .filter { $0.key == result.device.identifier }
-            .values
+            .first(where: { $0.key == result.device.identifier })?
+            .value
             .compactMap { $0.0.getOptionRawValue() }
             .joined(separator: ",")
             .appending(",")
@@ -383,7 +400,7 @@ public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:th
         case .dockerImage(let imageName):
             try IoTContext.runInDocker(
                 imageName: imageName,
-                command: "\(flattenedWebServiceArguments) deploy export-ws-structure iot \(fileUrl.path) --ip-address \(ipAddress) --action-keys \(actionKeys) --port \(port) --docker",
+                command: "\(flattenedWebServiceArguments) deploy export-ws-structure iot \(fileUrl.path) --ip-address \(ipAddress) --action-keys \(actionKeys ?? "default") --port \(port) --docker",
                 device: result.device,
                 workingDir: deploymentDir
             )
@@ -392,7 +409,7 @@ public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:th
                 configFileURL: composeRemoteLocation,
                 serviceName: serviceName,
                 containerName: containerName,
-                cmd: "\(flattenedWebServiceArguments) deploy export-ws-structure iot \(fileUrl.path) --ip-address \(ipAddress) --action-keys \(actionKeys) --port \(port) --docker",
+                cmd: "\(flattenedWebServiceArguments) deploy export-ws-structure iot \(fileUrl.path) --ip-address \(ipAddress) --action-keys \(actionKeys ?? "default") --port \(port) --docker",
                 device: result.device,
                 workingDir: deploymentDir,
                 port: port
@@ -432,13 +449,16 @@ public class IoTDeploymentProvider: DeploymentProvider { // swiftlint:disable:th
             .appendingPathComponent("debug")
         
         let actionKeys = postActionMapping
-            .filter { $0.key == device.identifier }
-            .values
+            .first(where: { $0.key == result.device.identifier })?
+            .value
             .compactMap { $0.0.getOptionRawValue() }
-            .joined(separator: "-")
+            .joined(separator: ",")
+            .appending(",")
+            .appending("default")
+        
         let ipAddress = try IoTContext.ipAddress(for: device)
         try IoTContext.runTaskOnRemote(
-            "./\(productName) \(flattenedWebServiceArguments) deploy export-ws-structure iot \(remoteFilePath) --ip-address \(ipAddress) --action-keys \(actionKeys) --port \(port)",
+            "./\(productName) \(flattenedWebServiceArguments) deploy export-ws-structure iot \(remoteFilePath) --ip-address \(ipAddress) --action-keys \(actionKeys ?? "default") --port \(port)",
             workingDir: buildUrl.path,
             device: device
         )

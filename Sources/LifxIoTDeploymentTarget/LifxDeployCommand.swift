@@ -43,7 +43,8 @@ struct LifxDeployCommand: ParsableCommand {
                 .deploymentDirectory: deploymentOptions.deploymentDir
             ],
             webServiceArguments: webServiceArguments,
-            input: .dockerImage("hendesi/master-thesis:latest-arm64")
+            input: .dockerImage("hendesi/master-thesis:latest-arm64"),
+            configurationFile: URL(fileURLWithPath: "/Users/felice/Downloads/config.json")
             //            input: .package(LIFXDeviceDiscoveryAction.self)
             //            input: .dockerCompose(
             //                fileURL: URL(fileURLWithPath: "/Users/felice/Documents/ApodiniDemoWebService/docker-compose.yml"),
